@@ -1,0 +1,4 @@
+tensorflow
+ultralytics
+cv2
+pandas
