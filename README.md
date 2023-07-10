@@ -1,5 +1,6 @@
 # visdomHPE
-human pose estimation and labeling by v i s d o m
+human pose estimation and labeling by V.I.S.D.O.M.
+Dvoryankin inspirated
 
 # Как скачать датасет?
 Очень просто.
