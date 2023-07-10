@@ -1,6 +1,7 @@
 # visdomHPE
 human pose estimation and labeling by V.I.S.D.O.M.
-Dvoryankin inspirated
+
+Made by Dvoryankin inspirated club(DIC)
 
 # Как скачать датасет?
 Очень просто.
