@@ -2,3 +2,6 @@
 *.csv
 *.pyc
 *.h5
+*.pt
+
+dataset

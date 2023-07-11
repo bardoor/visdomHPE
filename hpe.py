@@ -21,8 +21,7 @@ elif args.train is not None:
     Xs, ys, a, b = dataset.create_dataset(args.train)
     m = model.pose_estimation_model()
 
-    callbacks = [EarlyStopping(monitor='val_loss', patience=3),
-                 ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
+    callbacks = [ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
 
     m.fit(
         Xs, ys,
@@ -32,3 +31,4 @@ elif args.train is not None:
         shuffle=False,
         callbacks=callbacks
     )
+
