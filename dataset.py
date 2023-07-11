@@ -133,31 +133,6 @@ def create_dataset(path_to_csv, time_steps=20, step=5):
 
     return Xs, ys, labels, one_hot_encoder
 
-def shuffle_csv_file(file_path):
-    """Перемешивает строки в csv файле(кроме заголовка само собой)
-
-    Аргументы:
-        file_path: Путь к csv файлу
-
-    """
-    with open(file_path, 'r') as file:
-        reader = csv.reader(file)
-        lines = list(reader)
-    
-    header = lines[0]  # Сохраняем первую строку (заголовок)
-    data = lines[1:]  # Оставшиеся строки данных
-    
-    shuffle(data)  # Перемешиваем данные
-    
-    shuffled_lines = [header] + data  # Соединяем заголовок и перемешанные данные
-    
-    with open(file_path, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerows(shuffled_lines)
-    
-    print(f"Файл '{file_path}' был успешно перемешан.")
-
-
 def generate(path_to_video, times_steps=20, step=5):
     """Генерирует последовательности кадров (кейпоинтов) из видео
     с заданным размером и шагом
