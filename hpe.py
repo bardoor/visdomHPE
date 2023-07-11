@@ -1,12 +1,12 @@
 import argparse
 
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-
+import matplotlib.pyplot as plt
 import dataset
 import model
 
 
-MAX_EPOCHS_COUNT = 100
+MAX_EPOCHS_COUNT = 200
 
 parser = argparse.ArgumentParser(description="Для чего-то...")
 parser.add_argument("-g", "--generate", type=str, default=None,
@@ -23,7 +23,7 @@ elif args.train is not None:
 
     callbacks = [ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
 
-    m.fit(
+    history = m.fit(
         Xs, ys,
         epochs=MAX_EPOCHS_COUNT,
         batch_size=32,
@@ -31,4 +31,12 @@ elif args.train is not None:
         shuffle=False,
         callbacks=callbacks
     )
+    print(history.history.keys())
 
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
