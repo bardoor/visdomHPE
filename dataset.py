@@ -1,9 +1,10 @@
 import csv
 import os
+from random import shuffle
 
 import pandas as pd
 from tensorflow import convert_to_tensor
-from tensorflow.layers import StringLookup
+from tensorflow.klayers import StringLookup
 
 from keypoints import VideoKeypointsLoader, Keypoints
 
@@ -47,6 +48,7 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
         output_file_name += ".csv"
 
     videos = _find_videos(path_to_videos)
+    shuffle(videos)
 
     if verbose:
         print(f"Found {len(videos)} videos")
@@ -67,7 +69,7 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
             return
 
     column_names = ["activity"] + [keypoint.name for keypoint in Keypoints]
-    
+
     with open(output_file_name, mode) as dataset_file:
         dataset_file_writer = csv.DictWriter(dataset_file, column_names)
 
@@ -121,13 +123,15 @@ def create_dataset(path_to_csv, time_steps=20, step=5):
         Xs.append(series)
         ys.append(labels[0])
 
+    labels = ys
+
     one_hot_encoder = StringLookup(output_mode="one_hot")
     one_hot_encoder.adapt(ys)
 
     Xs = convert_to_tensor(Xs)
     ys = one_hot_encoder(ys)
 
-    return Xs, ys
+    return Xs, ys, labels, one_hot_encoder
 
 
 def generate(path_to_video, times_steps=20, step=5):
