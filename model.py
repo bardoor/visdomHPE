@@ -2,7 +2,7 @@ from tensorflow import keras
 from keras import layers
 
 
-def pose_estimation_model(output_classes=7):
+def pose_estimation_model(output_classes=8):
     model = keras.Sequential([
         layers.LSTM(units=128, input_shape=(None, 34)),
         layers.Dropout(0.4),

@@ -18,12 +18,13 @@ args = parser.parse_args()
 if args.generate is not None:
     dataset.to_csv(args.generate, "generated")
 elif args.train is not None:
-    Xs, ys = dataset.create_dataset(args.train)
+    Xs, ys, a, b = dataset.create_dataset(args.train)
+    m = model.pose_estimation_model()
 
     callbacks = [EarlyStopping(monitor='val_loss', patience=3),
                  ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
 
-    model.fit(
+    m.fit(
         Xs, ys,
         epochs=MAX_EPOCHS_COUNT,
         batch_size=32,
