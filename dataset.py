@@ -4,7 +4,7 @@ from random import shuffle
 
 import pandas as pd
 from tensorflow import convert_to_tensor
-from tensorflow.klayers import StringLookup
+from tensorflow.keras.layers import StringLookup
 
 from keypoints import VideoKeypointsLoader, Keypoints
 
