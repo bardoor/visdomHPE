@@ -1,38 +1,27 @@
 import argparse
 
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.pyplot as plt
+
 import dataset
 import model
 
-
-MAX_EPOCHS_COUNT = 200
 
 parser = argparse.ArgumentParser(description="Для чего-то...")
 parser.add_argument("-g", "--generate", type=str, default=None,
                     help="Путь к директории, содержащей папки с видео")
 parser.add_argument("-t", "--train", type=str, default=None,
                     help="Путь к csv файлу, содержащему датасет")
+parser.add_argument("-w", "--weights", type=str, default=None,
+                    help="Начальные веса модели")
 args = parser.parse_args()
 
 if args.generate is not None:
-    dataset.to_csv(args.generate, "generated")
+    dataset.to_csv(args.generate, "dataset")
 elif args.train is not None:
-    Xs, ys, a, b = dataset.create_dataset(args.train)
-    m = model.pose_estimation_model()
+    aem = model.ActionEstimationModel(weights=args.weights, train_dataset=args.train)
 
-    callbacks = [ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
-
-    history = m.fit(
-        Xs, ys,
-        epochs=MAX_EPOCHS_COUNT,
-        batch_size=32,
-        validation_split=0.1,
-        shuffle=False,
-        callbacks=callbacks
-    )
+    history = aem.history
     print(history.history.keys())
-
     plt.plot(history.history['acc'])
     plt.plot(history.history['val_acc'])
     plt.title('model accuracy')
