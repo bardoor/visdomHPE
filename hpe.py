@@ -7,6 +7,20 @@ import matplotlib.pyplot as plt
 import dataset
 import model
 
+def create_pie_chart(data):
+    counts = {}
+    for item in data:
+        if item in counts:
+            counts[item] += 1
+        else:
+            counts[item] = 1
+
+    labels = list(counts.keys())
+    values = list(counts.values())
+
+    plt.pie(values, labels=labels, autopct='%1.1f%%')
+    plt.axis('equal') 
+    plt.show()
 
 parser = argparse.ArgumentParser(description="Для чего-то...")
 parser.add_argument("-g", "--generate", type=str, default=None,
@@ -27,7 +41,7 @@ elif args.predict is not None:
         sys.exit(1)
     
     aem = model.ActionEstimationModel(weights=args.weights)
-    pp(aem.predict(args.predict))
+    create_pie_chart(aem.predict(args.predict))
 elif args.train is not None:
     aem = model.ActionEstimationModel(weights=args.weights, train_dataset=args.train)
 
