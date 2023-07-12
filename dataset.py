@@ -4,7 +4,7 @@ from random import shuffle
 import sys
 
 import pandas as pd
-from tensorflow import convert_to_tensor
+from tensorflow import convert_to_tensor, expand_dims
 
 from keypoints import VideoKeypointsLoader, Keypoints
 
@@ -195,5 +195,5 @@ def generate(path_to_video, time_steps=TIME_STEPS, step=STEP):
 
     keypoints = keypoints_loader.load(path_to_video)
     for i in range(0, len(keypoints) - time_steps, step):
-        seq = convert_to_tensor(keypoints[i:(i + time_steps)])
+        seq = expand_dims(convert_to_tensor(keypoints[i:(i + time_steps)]), axis=0)
         yield seq
