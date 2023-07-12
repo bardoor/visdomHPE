@@ -1,5 +1,6 @@
 import argparse
 import sys
+from pprint import pprint as pp
 
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,7 @@ elif args.predict is not None:
         sys.exit(1)
     
     aem = model.ActionEstimationModel(weights=args.weights)
-    print(aem.predict(args.predict))
+    pp(aem.predict(args.predict))
 elif args.train is not None:
     aem = model.ActionEstimationModel(weights=args.weights, train_dataset=args.train)
 
