@@ -57,7 +57,8 @@ class ActionEstimationModel:
         predicted_labels = []
 
         for keypoints_seq in dataset.generate(path_to_video):
-            predicted = self.model(keypoints_seq)
-            predicted_labels.append(dataset.ACTIVITY_LABELS[tf.math.argmax([predicted])])
+            predicted_class = tf.argmax(self.model(keypoints_seq)[0])
+            print(dataset.ACTIVITY_LABELS[predicted_class])
+            predicted_labels.append(dataset.ACTIVITY_LABELS[predicted_class])
         
         return predicted_labels
