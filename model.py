@@ -12,9 +12,9 @@ class ActionEstimationModel:
         self.model = keras.Sequential([
             layers.GRU(units=64, input_shape=(None, 34), return_sequences=True),
             layers.GRU(units=32),
-            layers.Dropout(0.4),
+            layers.Dropout(0.2),
             layers.Dense(units=16),
-            layers.Dropout(0.4),
+            layers.Dropout(0.2),
             layers.Dense(units=dataset.ACTIVITY_CLASSES_NUMBER, activation='softmax')
         ])
 
@@ -37,7 +37,7 @@ class ActionEstimationModel:
         Xs, ys = dataset.create_dataset(dataset_file)
 
         callbacks = [
-            EarlyStopping(monitor='val_loss', patience=10),
+            # EarlyStopping(monitor='val_loss', patience=10),
             ModelCheckpoint(filepath=output_weights, monitor='val_loss', save_best_only=True)
         ]
 
@@ -56,7 +56,7 @@ class ActionEstimationModel:
         predicted_labels = []
 
         for keypoints_seq in dataset.generate(path_to_video):
-            predicted = self.model.predict(keypoints_seq)
+            predicted = self.model(keypoints_seq)
             predicted_labels.append(dataset.ACTIVITY_LABELS[tf.math.argmax([predicted])])
         
         return predicted_labels
