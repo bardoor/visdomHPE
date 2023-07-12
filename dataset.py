@@ -1,12 +1,42 @@
 import csv
 import os
 from random import shuffle
+import sys
 
 import pandas as pd
 from tensorflow import convert_to_tensor
-from tensorflow.keras.layers import StringLookup
 
 from keypoints import VideoKeypointsLoader, Keypoints
+
+
+TIME_STEPS = 20
+
+STEP = 5
+
+ACTIVITY_CLASSES_NUMBER = 7
+
+ACTIVITY_LABELS = [
+    "jumps_2",
+    "jumps_left",
+    "jumps_right",
+    "sit-ups_narrow",
+    "sit-ups_ord",
+    "tilts_body",
+    "tilts_head",
+]
+
+ACTIVITY_LABELS_MAPPING = {
+    "jumps_2":        [1, 0, 0, 0, 0, 0, 0],
+    "jumps_left":     [0, 1, 0, 0, 0, 0, 0],
+    "jumps_right":    [0, 0, 1, 0, 0, 0, 0],
+    "sit-ups_narrow": [0, 0, 0, 1, 0, 0, 0],
+    "sit-ups_ord":    [0, 0, 0, 0, 1, 0, 0],
+    "tilts_body":     [0, 0, 0, 0, 0, 1, 0],
+    "tilts_head":     [0, 0, 0, 0, 0, 0, 1],
+}
+
+for label in ACTIVITY_LABELS_MAPPING:
+    ACTIVITY_LABELS_MAPPING[label] = convert_to_tensor(ACTIVITY_LABELS_MAPPING[label])
 
 
 def _find_videos(path):
@@ -53,6 +83,15 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
     if verbose:
         print(f"Found {len(videos)} videos")
 
+    found_unknown_label = False
+    for video in videos:
+        if video["activity"] not in ACTIVITY_LABELS:
+            print(f"Found unknown label \"{video['activity']}\"")
+            found_unknown_label = True
+    if found_unknown_label:
+        print("Creating csv file aborted")
+        sys.exit(1)
+
     keypoints_loader = VideoKeypointsLoader()
 
     mode = "w"
@@ -60,7 +99,7 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
     if os.path.exists(output_file_name):
         ans = input(
             f"[WARNING]: There's already a file called \"{output_file_name}\"\n" +
-            "The data found will be added to the file. Continue? (у\n): "
+             "           The data found will be added to the file. Continue? (у\\n): "
         )
         if ans.lower().startswith("y"):
             mode = "a"
@@ -69,12 +108,14 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
             return
 
     column_names = ["activity"] + [keypoint.name for keypoint in Keypoints]
-
+    
     with open(output_file_name, mode) as dataset_file:
         dataset_file_writer = csv.DictWriter(dataset_file, column_names)
 
         if mode == "w":
             dataset_file_writer.writeheader()
+
+        proccessed_videos_count = 0
 
         for video in videos:
             activity, video_path = video["activity"], video["path"]
@@ -89,8 +130,12 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
                 )
                 dataset_file_writer.writerow(row)
 
+            proccessed_videos_count += 1
+            if proccessed_videos_count % 5 == 0:
+                print(f"Already proccessed {proccessed_videos_count} videos, {len(videos) - proccessed_videos_count} left...")
 
-def create_dataset(path_to_csv, time_steps=20, step=5):
+
+def create_dataset(path_to_csv, time_steps=TIME_STEPS, step=STEP):
     """Считывает датасет из .csv файла
 
     Аргументы:
@@ -123,17 +168,16 @@ def create_dataset(path_to_csv, time_steps=20, step=5):
         Xs.append(series)
         ys.append(labels[0])
 
-    labels = ys
-
-    one_hot_encoder = StringLookup(output_mode="one_hot")
-    one_hot_encoder.adapt(ys)
+    for i in range(len(ys)):
+        ys[i] = ACTIVITY_LABELS_MAPPING[ys[i]]
 
     Xs = convert_to_tensor(Xs)
-    ys = one_hot_encoder(ys)
+    ys = convert_to_tensor(ys)
 
-    return Xs, ys, labels, one_hot_encoder
+    return Xs, ys
 
-def generate(path_to_video, times_steps=20, step=5):
+
+def generate(path_to_video, time_steps=TIME_STEPS, step=STEP):
     """Генерирует последовательности кадров (кейпоинтов) из видео
     с заданным размером и шагом
 
@@ -150,6 +194,6 @@ def generate(path_to_video, times_steps=20, step=5):
     keypoints_loader = VideoKeypointsLoader()
 
     keypoints = keypoints_loader.load(path_to_video)
-    for i in range(0, len(keypoints) - times_steps, step):
-        seq = convert_to_tensor(keypoints[i:(i + times_steps)])
+    for i in range(0, len(keypoints) - time_steps, step):
+        seq = convert_to_tensor(keypoints[i:(i + time_steps)])
         yield seq
