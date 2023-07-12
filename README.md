@@ -85,7 +85,7 @@ python hpe.py --train generated.csv
 ```
 python hpe.py --weights <путь к весовой модели> --predict <путь к видео>
 ```
-В качестве весовой модели вы можете использовать нашу pretrained_model.h5 - точность около 80%.
+В качестве весовой модели вы можете использовать нашу pretrained_model.h5 - точность около 90%.
 
 
 >:electron:	***Made by Dvoryankin inspirated club (DIC)***   :electron:	
