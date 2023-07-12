@@ -1,7 +1,7 @@
 import argparse
 import sys
 from pprint import pprint as pp
-
+from keras.utils.vis_utils import plot_model
 import matplotlib.pyplot as plt
 
 import dataset
@@ -44,9 +44,8 @@ elif args.predict is not None:
     create_pie_chart(aem.predict(args.predict))
 elif args.train is not None:
     aem = model.ActionEstimationModel(weights=args.weights, train_dataset=args.train)
-
+    print(aem.model.summary())
     history = aem.history
-    print(history.history.keys())
     plt.plot(history.history['accuracy'])
     plt.plot(history.history['val_accuracy'])
     plt.title('model accuracy')

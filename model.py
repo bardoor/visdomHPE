@@ -3,6 +3,7 @@ from tensorflow import keras
 from keras import layers
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
+
 import dataset
 
 
@@ -44,7 +45,7 @@ class ActionEstimationModel:
 
         history = self.model.fit(
             Xs, ys,
-            epochs=100,
+            epochs=250,
             batch_size=32,
             validation_split=0.2,
             shuffle=False,
