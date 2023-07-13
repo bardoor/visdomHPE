@@ -1,4 +1,5 @@
 import csv
+import cv2
 import os
 from random import shuffle
 import sys
@@ -37,6 +38,43 @@ ACTIVITY_LABELS_MAPPING = {
 
 for label in ACTIVITY_LABELS_MAPPING:
     ACTIVITY_LABELS_MAPPING[label] = convert_to_tensor(ACTIVITY_LABELS_MAPPING[label])
+
+def change_fps(input_video_path, target_fps):
+    temp_output_path = "temp_output.mp4"
+
+    # Открываем видеофайл
+    video = cv2.VideoCapture(input_video_path)
+
+    # Считываем частоту кадров
+    fps = video.get(cv2.CAP_PROP_FPS)
+
+    # На обдумывание потомкам
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(temp_output_path, fourcc, target_fps, (int(video.get(3)), int(video.get(4))))
+
+    # Читаем и конвертируем каждый кадр видео
+    while video.isOpened():
+        ret, frame = video.read()
+
+        if not ret:
+            break
+
+        out.write(frame)
+
+        # Пропускаем кадры чтобы достичь целевого fps
+        skip_frames = round(fps / target_fps) - 1
+        for _ in range(skip_frames):
+            video.read()
+
+    # Закрываем видеофайлы
+    video.release()
+    out.release()
+
+    # Удаляем исходный файл
+    os.remove(input_video_path)
+
+    # Переименовываем временный файл в исходное имя файла
+    os.rename(temp_output_path, input_video_path)
 
 
 def _find_videos(path):
