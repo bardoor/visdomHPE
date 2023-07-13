@@ -1,8 +1,8 @@
 
 *.csv
 *.pyc
-*.h5
 *.pt
 
 dataset
 *.mp4
+*.png
