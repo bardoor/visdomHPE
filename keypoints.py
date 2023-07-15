@@ -20,7 +20,7 @@ class VideoKeypointsLoader:
 
             if success:
                 results = self.yolo_model(frame, classes=0, verbose=False)
-
+                keypoints = results[0].keypoints.xyn[0].numpy()
                 if keypoints.size > 0:
                     keypoints = keypoints.reshape(34)
                     video_keypoints.append(keypoints)

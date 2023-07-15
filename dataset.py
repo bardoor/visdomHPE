@@ -15,7 +15,7 @@ with open("config.json", "r") as config:
 
 TIME_STEPS = data['yolo_handling']['TIME_STEPS']
 STEP = data['yolo_handling']['STEP']
-ACTIVITY_CLASSES_NUMBER = data['yolo_handling']['ACTIVITY_CLASSES_NUMBER']
+ACTIVITY_CLASSES_NUMBER = len(data['yolo_handling']['ACTIVITY_LABELS'])
 ACTIVITY_LABELS = data["yolo_handling"]["ACTIVITY_LABELS"]
 ACTIVITY_LABELS_MAPPING = data['yolo_handling']['ACTIVITY_LABELS_MAPPING']
 ALLOWED_VIDEO_FORMATS = data['video_handling']['ALLOWED_VIDEO_FORMATS']
@@ -253,10 +253,10 @@ def build_keypoints(video, yolo_model_name: str = "yolov8n-pose.pt", verbose: bo
     video_path = os.path.abspath(video.path)
 
     if verbose:
-        print(f"Processing \"{video_path}\"...")
+        print(f"Processing \"{video.path}\"...")
 
     video_keypoints = keypoints_loader.load(video_path)
-
+    print("loaded")
     for frame_keypoints in video_keypoints:
         video_keypoints.append(list(frame_keypoints))
 
