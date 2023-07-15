@@ -1,7 +1,7 @@
 import argparse
 import sys
 from pprint import pprint as pp
-from keras.utils.vis_utils import plot_model
+from tensorflow.keras.utils import plot_model 
 import matplotlib.pyplot as plt
 
 import dataset

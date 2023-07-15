@@ -2,44 +2,62 @@ import csv
 import cv2
 import os
 from random import shuffle
-import sys
-
+import json
+import time
+from numpy import mean
 import pandas as pd
 from tensorflow import convert_to_tensor, expand_dims
 
-from keypoints import VideoKeypointsLoader, Keypoints
+from keypoints import VideoKeypointsLoader
 
+with open("config.json", "r") as config:
+    data = json.load(config)
 
-TIME_STEPS = 20
-
-STEP = 5
-
-ACTIVITY_CLASSES_NUMBER = 7
-
-ACTIVITY_LABELS = [
-    "jumps_2",
-    "jumps_left",
-    "jumps_right",
-    "sit-ups_narrow",
-    "sit-ups_ord",
-    "tilts_body",
-    "tilts_head",
-]
-
-ACTIVITY_LABELS_MAPPING = {
-    "jumps_2":        [1, 0, 0, 0, 0, 0, 0],
-    "jumps_left":     [0, 1, 0, 0, 0, 0, 0],
-    "jumps_right":    [0, 0, 1, 0, 0, 0, 0],
-    "sit-ups_narrow": [0, 0, 0, 1, 0, 0, 0],
-    "sit-ups_ord":    [0, 0, 0, 0, 1, 0, 0],
-    "tilts_body":     [0, 0, 0, 0, 0, 1, 0],
-    "tilts_head":     [0, 0, 0, 0, 0, 0, 1],
-}
+TIME_STEPS = data['yolo_handling']['TIME_STEPS']
+STEP = data['yolo_handling']['STEP']
+ACTIVITY_CLASSES_NUMBER = data['yolo_handling']['ACTIVITY_CLASSES_NUMBER']
+ACTIVITY_LABELS = ["yolo_handling"]["ACTIVITY_LABELS"]
+ACTIVITY_LABELS_MAPPING = ['yolo_handling']['ACTIVITY_LABELS_MAPPING']
+ALLOWED_VIDEO_FORMATS = ['video_handling']['ALLOWED_VIDEO_FORMATS']
+KEYPOINTS = ['yolo_handling']['Keypoints']
 
 for label in ACTIVITY_LABELS_MAPPING:
     ACTIVITY_LABELS_MAPPING[label] = convert_to_tensor(ACTIVITY_LABELS_MAPPING[label])
 
-def change_fps(input_video_path, target_fps):
+def split_path_tierwise(video_file):
+    """
+    Разделить абсолютный путь к файлу по уровням
+
+    Параметры:
+    ---------
+    file: str
+        Файл...
+
+    Возвращает:
+    ----------
+    Список директорий на пути к файлу
+    """
+    hierarchy = []
+    file_path = video_file.path
+
+    while file_path != "":
+        file_path, folder = os.path.split(file_path)
+        if folder != "":
+            hierarchy.insert(0, folder)
+
+    return hierarchy
+
+def decrease_fps(input_video_path: str, target_fps: int):
+    """
+    Уменьшить количество кадров в секунду в видео путём растягивания
+
+    Параметры:
+    ---------
+    input_video_path: str
+        Путь к видео
+    target_fps: int
+        Необходимое количество кадров в секунду
+    """
     temp_output_path = "temp_output.mp4"
 
     # Открываем видеофайл
@@ -47,6 +65,9 @@ def change_fps(input_video_path, target_fps):
 
     # Считываем частоту кадров
     fps = video.get(cv2.CAP_PROP_FPS)
+    
+    if(fps <= target_fps):
+        return
 
     # На обдумывание потомкам
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -77,7 +98,21 @@ def change_fps(input_video_path, target_fps):
     os.rename(temp_output_path, input_video_path)
 
 
-def _find_videos(path):
+def _find_videos(path: str, allowed_video_formats: list[str] = ALLOWED_VIDEO_FORMATS):
+    """
+    Поиск всех видео в папках внутри указанной директории и сопоставление соответствия с содержащей видео папкой
+
+    Параметры:
+    ---------
+    path: str
+        Путь к видео с папками, содержащими видео
+    allowed_video_formats: list[str]
+        Допустимые форматы видео
+
+    Возвращает:
+    ----------
+        Список всех найденных видео
+    """
     videos = []
 
     for directory in os.scandir(path):
@@ -90,7 +125,7 @@ def _find_videos(path):
 
             _, ext = os.path.splitext(video_file.path)
 
-            if ext.lower() not in [".mp4", ".mov"]:
+            if ext.lower() not in allowed_video_formats:
                 continue
 
             videos.append({
@@ -100,8 +135,69 @@ def _find_videos(path):
 
     return videos
 
+def _find_videos(path: str, allowed_video_formats: list[str] = ALLOWED_VIDEO_FORMATS) -> list[str]:
+    """
+    Поиск видео заданных форматов внутри папок в указанной директории
 
-def to_csv(path_to_videos, output_file_name, verbose=True):
+    Параметры:
+    ---------
+    path: str
+        Путь к видео с папками, содержащими видео
+    allowed_video_formats: list[str]
+        Допустимые форматы видео
+
+    Возвращает:
+    ----------
+        Список всех найденных видеофайлов
+    """
+    videos = []
+
+    for directory in os.scandir(path):
+        if not directory.is_dir():
+            continue
+
+        for video_file in os.scandir(directory.path):
+            if not video_file.is_file():
+                continue
+
+            _, ext = os.path.splitext(video_file.path)
+
+            if ext.lower() not in allowed_video_formats:
+                continue
+
+            videos.append({
+                video_file # Более универсальная штука чем просто возвращать абсолютный путь
+            })
+
+    return videos
+
+def validate_folder_names(directory: str, allowed_names: list[str]):
+    '''
+    Строгая проверка разрешенности имеён папок в указаной директории
+
+    Параметры:
+    ---------
+    directory: str
+        Путь к директории, в которой валидируются имена папок
+    allowed_names: list[str]
+        Список допустимых имён папок
+
+    Возвращает:
+    ----------
+    invalid_folders
+        Список неразрешенных папок
+    '''
+    invalid_folders = set()
+    for entry in os.scandir(directory):
+        if not entry.is_dir():
+            continue
+
+        if entry.name not in allowed_names:
+            invalid_folders.add(entry.name) # возможно надо брать путь, но с другой стороны и так понятно где они лежат....
+    return invalid_folders
+
+
+def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
     """Создаёт csv-файл, содержащий датасет из обработанных видео
 
     Аргументы:
@@ -112,40 +208,40 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
         verbose: Флаг, указывающий, выводить ли подробности об обработке видео (по умолчанию - True)
     """
 
+    invalid_folders = validate_folder_names(path_to_videos, ACTIVITY_LABELS)
+    if(len(invalid_folders) > 0):
+        print(f"Folders that do not match the name of any class were found in {path_to_videos}:")
+        print('\n'.join(invalid_folders)) # вывод недопустимых папок через перенос строки
+        print("Generating csv aborted.")
+        return
+
     if not output_file_name.endswith(".csv"):
         output_file_name += ".csv"
-
+    
     videos = _find_videos(path_to_videos)
     shuffle(videos)
 
     if verbose:
         print(f"Found {len(videos)} videos")
 
-    found_unknown_label = False
-    for video in videos:
-        if video["activity"] not in ACTIVITY_LABELS:
-            print(f"Found unknown label \"{video['activity']}\"")
-            found_unknown_label = True
-    if found_unknown_label:
-        print("Creating csv file aborted")
-        sys.exit(1)
-
-    keypoints_loader = VideoKeypointsLoader()
-
-    mode = "w"
-
     if os.path.exists(output_file_name):
         ans = input(
-            f"[WARNING]: There's already a file called \"{output_file_name}\"\n" +
-             "           The data found will be added to the file. Continue? (у\\n): "
+            f"[WARNING]: There's already a file called \"{output_file_name}\"." +
+            "\t 1. Overwrite an existing file\n" +
+            "\t 2. Add to the existing file\n" +
+            "\t 3. Cancel csv generation\n" +
+            "Please select the required action(1): "
         )
-        if ans.lower().startswith("y"):
+
+        if int(ans) == 1 or len(ans) == 0:
+            mode = "w"
+        elif int(ans) == 2:
             mode = "a"
         else:
             print("Creating csv file aborted")
             return
 
-    column_names = ["activity"] + [keypoint.name for keypoint in Keypoints]
+    column_names = ["activity"] + [keypoint.name for keypoint in KEYPOINTS]
     
     with open(output_file_name, mode) as dataset_file:
         dataset_file_writer = csv.DictWriter(dataset_file, column_names)
@@ -154,23 +250,55 @@ def to_csv(path_to_videos, output_file_name, verbose=True):
             dataset_file_writer.writeheader()
 
         proccessed_videos_count = 0
+        processing_time_log = []
 
         for video in videos:
-            activity, video_path = video["activity"], video["path"]
+            video_proc_start = time.time()
 
-            if verbose:
-                print(f"Processing \"{video_path}\"...")
-
-            video_keypoints = keypoints_loader.load(video_path)
+            video_keypoints = build_keypoints(video)
             for frame_keypoints in video_keypoints:
-                row = dict(
-                    zip(column_names, [activity] + list(frame_keypoints))
-                )
-                dataset_file_writer.writerow(row)
+                dataset_file_writer.writerow(split_path_tierwise(video)[-2] + frame_keypoints) # Получаем название упражнения и приписываем к нему keypoints
 
             proccessed_videos_count += 1
-            if proccessed_videos_count % 5 == 0:
-                print(f"Already proccessed {proccessed_videos_count} videos, {len(videos) - proccessed_videos_count} left...")
+            if proccessed_videos_count % 5 == 0 and verbose:
+                processing_time_log.append(time.time() - video_proc_start)
+                time_left = mean(processing_time_log) * (len(videos) - proccessed_videos_count)
+                print(f"Already proccessed {proccessed_videos_count} videos in {processing_time_log[-1]}, {len(videos) - proccessed_videos_count} left...\n" +
+                      f"I predict that there are {time_left // 3600} hours and {time_left // 60} minutes left")
+                
+
+        
+
+def build_keypoints(video, yolo_model_name: str = "yolov8n-pose.pt", verbose: bool = True):
+    """
+    Построить ключевые точки человека для указанного видео
+
+    Параметры:
+    ---------
+    video
+        Обрабатываемое видео
+    yolo_model_name: str
+        Используемая модель YOLO-pose
+    verbose: bool
+        Флаг для вывода подробностей об обработке видео
+    
+    Возвращает:
+    ----------
+    Ключевые точки человека для каждого кадра видео
+    """
+    keypoints_loader = VideoKeypointsLoader(yolo_model_name)
+
+    video_path = os.path.abspath(video)
+
+    if verbose:
+        print(f"Processing \"{video_path}\"...")
+
+    video_keypoints = keypoints_loader.load(video_path)
+
+    for frame_keypoints in video_keypoints:
+        video_keypoints.append(list(frame_keypoints))
+
+    return video_keypoints
 
 
 def create_dataset(path_to_csv, time_steps=TIME_STEPS, step=STEP):
@@ -192,7 +320,6 @@ def create_dataset(path_to_csv, time_steps=TIME_STEPS, step=STEP):
     Xs, ys = [], []
 
     df = pd.read_csv(path_to_csv)
-
     X = df.drop(columns=["activity"]).to_numpy()
     y = df.activity.to_numpy()
 
@@ -229,7 +356,7 @@ def generate(path_to_video, time_steps=TIME_STEPS, step=STEP):
         опережает текущую (по умолчанию - 5)
     """
 
-    keypoints_loader = VideoKeypointsLoader()
+    keypoints_loader = VideoKeypointsLoader("yolo8x-pose-p6.pt")
 
     keypoints = keypoints_loader.load(path_to_video)
     for i in range(0, len(keypoints) - time_steps, step):
