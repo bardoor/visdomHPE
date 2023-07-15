@@ -16,10 +16,10 @@ with open("config.json", "r") as config:
 TIME_STEPS = data['yolo_handling']['TIME_STEPS']
 STEP = data['yolo_handling']['STEP']
 ACTIVITY_CLASSES_NUMBER = data['yolo_handling']['ACTIVITY_CLASSES_NUMBER']
-ACTIVITY_LABELS = ["yolo_handling"]["ACTIVITY_LABELS"]
-ACTIVITY_LABELS_MAPPING = ['yolo_handling']['ACTIVITY_LABELS_MAPPING']
-ALLOWED_VIDEO_FORMATS = ['video_handling']['ALLOWED_VIDEO_FORMATS']
-KEYPOINTS = ['yolo_handling']['Keypoints']
+ACTIVITY_LABELS = data["yolo_handling"]["ACTIVITY_LABELS"]
+ACTIVITY_LABELS_MAPPING = data['yolo_handling']['ACTIVITY_LABELS_MAPPING']
+ALLOWED_VIDEO_FORMATS = data['video_handling']['ALLOWED_VIDEO_FORMATS']
+KEYPOINTS = data['yolo_handling']['Keypoints']
 
 for label in ACTIVITY_LABELS_MAPPING:
     ACTIVITY_LABELS_MAPPING[label] = convert_to_tensor(ACTIVITY_LABELS_MAPPING[label])
