@@ -1,4 +1,3 @@
-import enum
 from torch import cuda
 import cv2
 from ultralytics import YOLO
@@ -17,7 +16,7 @@ class VideoKeypointsLoader:
         cap = cv2.VideoCapture(path)
         while cap.isOpened():
             success, frame = cap.read()
-
+            
             if success:
                 results = self.yolo_model(frame, classes=0, verbose=False)
                 keypoints = results[0].keypoints.xyn[0].numpy()

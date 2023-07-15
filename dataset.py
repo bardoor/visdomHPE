@@ -66,7 +66,7 @@ def decrease_fps(input_video_path: str, target_fps: int):
     # Считываем частоту кадров
     fps = video.get(cv2.CAP_PROP_FPS)
     
-    if(fps <= target_fps):
+    if fps <= target_fps:
         return
 
     # На обдумывание потомкам
@@ -170,7 +170,7 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
     """
 
     invalid_folders = validate_folder_names(path_to_videos, ACTIVITY_LABELS)
-    if(len(invalid_folders) > 0):
+    if len(invalid_folders) > 0:
         print(f"Folders that do not match the name of any class were found in {path_to_videos}:")
         print('\n'.join(invalid_folders)) # вывод недопустимых папок через перенос строки
         print("Generating csv aborted.")
@@ -181,8 +181,6 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
     
     videos = _find_videos(path_to_videos)
     shuffle(videos)
-
-   
 
     if verbose:
         print(f"Found {len(videos)} videos")
@@ -217,16 +215,17 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
         processing_time_log = []
         for video in videos:
             video_proc_start = time.time()
-            video_keypoints = build_keypoints(video)
-            for frame_keypoints in video_keypoints:
-                dataset_file_writer.writerow(split_path_tierwise(video)[-2] + frame_keypoints) # Получаем название упражнения и приписываем к нему keypoints
+            for frame_keypoints in build_keypoints(video):
+                frame_keypoints = dict(zip(list(KEYPOINTS.keys()), frame_keypoints))
+                frame_keypoints['activity'] = split_path_tierwise(video)[-2]
+                dataset_file_writer.writerow(frame_keypoints) 
 
             proccessed_videos_count += 1
             if proccessed_videos_count % 5 == 0 and verbose:
                 processing_time_log.append(time.time() - video_proc_start)
                 time_left = mean(processing_time_log) * (len(videos) - proccessed_videos_count)
-                print(f"Already proccessed {proccessed_videos_count} videos in {processing_time_log[-1]}, {len(videos) - proccessed_videos_count} left...\n" +
-                      f"I predict that there are {time_left // 3600} hours and {time_left // 60} minutes left")
+                print(f"Already proccessed {proccessed_videos_count} videos in {int(processing_time_log[-1])} seconds, {len(videos) - proccessed_videos_count} left...\n" +
+                      f"I predict that there are {int(time_left // 3600)} hours and {int(time_left // 60 - 60 * (time_left // 3600))} minutes left")
                 
 
         
@@ -246,7 +245,7 @@ def build_keypoints(video, yolo_model_name: str = "yolov8n-pose.pt", verbose: bo
     
     Возвращает:
     ----------
-    Ключевые точки человека для каждого кадра видео
+    Генератор ключевых точек человека для каждого кадра видео
     """
     keypoints_loader = VideoKeypointsLoader(yolo_model_name)
 
@@ -256,11 +255,9 @@ def build_keypoints(video, yolo_model_name: str = "yolov8n-pose.pt", verbose: bo
         print(f"Processing \"{video.path}\"...")
 
     video_keypoints = keypoints_loader.load(video_path)
-    print("loaded")
-    for frame_keypoints in video_keypoints:
-        video_keypoints.append(list(frame_keypoints))
 
-    return video_keypoints
+    for frame_keypoints in video_keypoints:
+        yield frame_keypoints
 
 
 def create_dataset(path_to_csv, time_steps=TIME_STEPS, step=STEP):
