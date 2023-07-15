@@ -98,43 +98,6 @@ def decrease_fps(input_video_path: str, target_fps: int):
     os.rename(temp_output_path, input_video_path)
 
 
-def _find_videos(path: str, allowed_video_formats: list[str] = ALLOWED_VIDEO_FORMATS):
-    """
-    Поиск всех видео в папках внутри указанной директории и сопоставление соответствия с содержащей видео папкой
-
-    Параметры:
-    ---------
-    path: str
-        Путь к видео с папками, содержащими видео
-    allowed_video_formats: list[str]
-        Допустимые форматы видео
-
-    Возвращает:
-    ----------
-        Список всех найденных видео
-    """
-    videos = []
-
-    for directory in os.scandir(path):
-        if not directory.is_dir():
-            continue
-
-        for video_file in os.scandir(directory.path):
-            if not video_file.is_file():
-                continue
-
-            _, ext = os.path.splitext(video_file.path)
-
-            if ext.lower() not in allowed_video_formats:
-                continue
-
-            videos.append({
-                "activity": os.path.basename(directory),
-                "path": os.path.abspath(video_file.path)
-            })
-
-    return videos
-
 def _find_videos(path: str, allowed_video_formats: list[str] = ALLOWED_VIDEO_FORMATS) -> list[str]:
     """
     Поиск видео заданных форматов внутри папок в указанной директории
@@ -165,10 +128,8 @@ def _find_videos(path: str, allowed_video_formats: list[str] = ALLOWED_VIDEO_FOR
             if ext.lower() not in allowed_video_formats:
                 continue
 
-            videos.append({
-                video_file # Более универсальная штука чем просто возвращать абсолютный путь
-            })
-
+            videos.append(video_file) # Более универсальная штука чем просто возвращать абсолютный путь
+            
     return videos
 
 def validate_folder_names(directory: str, allowed_names: list[str]):
@@ -194,7 +155,7 @@ def validate_folder_names(directory: str, allowed_names: list[str]):
 
         if entry.name not in allowed_names:
             invalid_folders.add(entry.name) # возможно надо брать путь, но с другой стороны и так понятно где они лежат....
-    return invalid_folders
+    return list(invalid_folders)
 
 
 def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
@@ -221,19 +182,22 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
     videos = _find_videos(path_to_videos)
     shuffle(videos)
 
+   
+
     if verbose:
         print(f"Found {len(videos)} videos")
-
+    
+    mode = "w"
     if os.path.exists(output_file_name):
         ans = input(
-            f"[WARNING]: There's already a file called \"{output_file_name}\"." +
+            f"[WARNING]: There's already a file called \"{output_file_name}\".\n" +
             "\t 1. Overwrite an existing file\n" +
             "\t 2. Add to the existing file\n" +
             "\t 3. Cancel csv generation\n" +
             "Please select the required action(1): "
         )
 
-        if int(ans) == 1 or len(ans) == 0:
+        if len(ans) == 0 or int(ans) == 1:
             mode = "w"
         elif int(ans) == 2:
             mode = "a"
@@ -241,7 +205,7 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
             print("Creating csv file aborted")
             return
 
-    column_names = ["activity"] + [keypoint.name for keypoint in KEYPOINTS]
+    column_names = ["activity"] + [keypoint for keypoint in KEYPOINTS]
     
     with open(output_file_name, mode) as dataset_file:
         dataset_file_writer = csv.DictWriter(dataset_file, column_names)
@@ -251,10 +215,8 @@ def to_csv(path_to_videos: str, output_file_name: str, verbose: bool = True):
 
         proccessed_videos_count = 0
         processing_time_log = []
-
         for video in videos:
             video_proc_start = time.time()
-
             video_keypoints = build_keypoints(video)
             for frame_keypoints in video_keypoints:
                 dataset_file_writer.writerow(split_path_tierwise(video)[-2] + frame_keypoints) # Получаем название упражнения и приписываем к нему keypoints
@@ -288,7 +250,7 @@ def build_keypoints(video, yolo_model_name: str = "yolov8n-pose.pt", verbose: bo
     """
     keypoints_loader = VideoKeypointsLoader(yolo_model_name)
 
-    video_path = os.path.abspath(video)
+    video_path = os.path.abspath(video.path)
 
     if verbose:
         print(f"Processing \"{video_path}\"...")

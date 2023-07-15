@@ -1,5 +1,5 @@
 import enum
-
+from torch import cuda
 import cv2
 from ultralytics import YOLO
 
@@ -8,7 +8,8 @@ class VideoKeypointsLoader:
 
     def __init__(self, yolo_model_name="yolov8n-pose.pt"):
         self.yolo_model = YOLO(yolo_model_name)
-        self.yolo_model.to("cuda")
+        if(cuda.is_available()):
+            self.yolo_model.to("cuda")
 
     def load(self, path):
         video_keypoints = []
